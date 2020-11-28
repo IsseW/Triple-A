@@ -15,8 +15,8 @@ TYPES
 ãa - number
 ãaA - string
 ãaa - function
-ãaaA - predefined function
 ãaaa - list
+ãaaA - dictionary
 
 CONSTANTS:
 XXXXXX for number, presented in binary where A = 1 and a = 0

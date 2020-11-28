@@ -138,7 +138,7 @@ def bitwise_not(a, b):
     return mk_number(x ^ y)
 
 
-def string_size(s):
+def size_of(s):
     return mk_number(len(s))
 
 
@@ -175,8 +175,32 @@ def index_list(lst, index):
     return lst["value"][index]
 
 
-def concat_list(a: list, b: list):
-    return mk_list(a + b)
+def index_dict(dict, key):
+    return dict["value"][key]
+
+
+def mk_copy(obj):
+    return mk_obj(obj["type"], obj["value"])
+
+
+def mk_null():
+    return mk_obj("", None)
+
+
+def add_to_list(lst, value):
+    lst.append(mk_copy(value))
+    return mk_null
+
+
+def remove_from_list(lst, value):
+    if value in lst["value"]:
+        lst["value"].remove(value)
+        return mk_number(1.0)
+    return mk_number(0.0)
+
+
+def concat_list(a, b):
+    return mk_list(a["value"] + b["value"])
 
 
 functions = {"Aaa": print_object, "AaA": input_object}
@@ -195,9 +219,10 @@ assembly = {"a": {"operators": {"A": {"a": add_number}, "Aa": {"a": sub_number, 
                                 "AaAa": {"a": equals}, "AaAaa": {"a": less_than}, "AaAaaa": {"a": lesseq_than}, "AaAaA": {"a": greater_than}, "AaAaAa": {"a": greatereq_than}},
                   "constructors": {("a",): mk_number, ("aA",): mk_number}},
             "aA": {"operators": {"a": {"aA": assign}, "A": {"aA": add_str}, "AA": {"a": mul_str}},
-                   "constructors": {("a",): mk_string, ("aA",): mk_string}, "functions": {"a": {(): string_size}}},
+                   "constructors": {("a",): mk_string, ("aA",): mk_string}, "functions": {"a": [{"args": (), "func": size_of}]}},
             "aa": {"operators": {"AaA": {"aaa": call_function, "solo": call_function, "a": call_single, "aA": call_single, "aa": call_single, "": call_single}}},
-            "aaa": {"operators": {"AaAA": {"a": index_list}, "A": {"aaa": concat_list}}}}
+            "aaa": {"operators": {"AaAA": {"a": index_list}, "A": {"aaa": concat_list}}, "functions": {"a": [{"args": (), "func": size_of}], "A": [{"args": ("any"), "func": add_to_list}]}},
+            "aaA": {"operators": {"AaAA": {"a": index_dict, "aA": index_dict}}}}
 
 
 def parse_num(string, code_runner):

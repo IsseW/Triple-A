@@ -1,5 +1,6 @@
 import sys
 import traceback
+import os
 from A_assembly import compile, assembly, mk_obj, mk_number, mk_list, mk_string, mk_function, operator_order, stack, run_stack, functions, labels, runtime_error, compile_error
 file = open
 
@@ -25,9 +26,16 @@ def run_program(code):
 run_stack_ref = run_stack
 runtime_error_ref = runtime_error
 
+VERSION = "0.0.1"
+print("Using AAA version", VERSION)
 if __name__ == "__main__" and len(sys.argv) > 1:
-    path = sys.argv[1]
-    file = open(path, "r", encoding="utf-8")
-    code = file.read()
-    file.close()
-    sys.exit(run_program(code))
+    arg = sys.argv[1]
+    if os.path.isfile(arg):
+        file = open(arg, "r", encoding="utf-8")
+        code = file.read()
+        file.close()
+        sys.exit(run_program(code))
+    elif arg == "-version":
+        print("AAA - " + VERSION)
+    else:
+        print("Enter .aaa file path to run it.")
