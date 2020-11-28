@@ -1,4 +1,8 @@
+Ever gotten tired of having to type more than one letter when coding? Yeah not me either, but in Triple-A you code with only variations of the letter A.
 
+
+
+Just some info about the language. Mostly for me so that I dont forget.
 replace X for either A or a
 
 GENERAL
