@@ -17,25 +17,25 @@ def run_program(code):
             compile_error("Non A or whitespace character found.", test_line)
             return 1
     code.expandtabs(4)
-    program, _ptf_line, _i = compile(code)
+    program, to_file, _i, _l = compile(code)
     stack[-1]["program"] = program
+    stack[-1]["to_file"] = to_file
     run_stack()
     return 0
 
 
+VERSION = "0.1.0"
 run_stack_ref = run_stack
 runtime_error_ref = runtime_error
-
-VERSION = "0.0.1"
-print("Using AAA version", VERSION)
-if __name__ == "__main__" and len(sys.argv) > 1:
-    arg = sys.argv[1]
-    if os.path.isfile(arg):
-        file = open(arg, "r", encoding="utf-8")
-        code = file.read()
-        file.close()
-        sys.exit(run_program(code))
-    elif arg == "-version":
-        print("AAA - " + VERSION)
-    else:
-        print("Enter .aaa file path to run it.")
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        arg = sys.argv[1]
+        if os.path.isfile(arg):
+            file = open(arg, "r", encoding="utf-8")
+            code = file.read()
+            file.close()
+            sys.exit(run_program(code))
+        elif arg == "-version":
+            print("AAA - " + VERSION)
+        else:
+            print("Enter .aaa file path to run it.")

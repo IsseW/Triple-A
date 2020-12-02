@@ -4,8 +4,13 @@ def compile_error(text, line):
 
 
 def runtime_error(text, code_runner):
-    print("Error at line " + str(get_line(code_runner)) + ": " + text)
+    print("Error at line " + str(get_file_line(code_runner)) + ": " + text)
     return mk_obj("", None)
+
+
+def get_file_line(code_runner):
+    line = get_line(code_runner)
+    return stack[code_runner]["to_file"][line]
 
 
 def assign(a, b):
@@ -73,7 +78,18 @@ def mul_str(a, b):
 
 def mk_number(v):
     if type(v) == dict:
-        return mk_obj("a", float(v["value"]))
+        val = v["value"]
+        if type(val) == str:
+            try:
+                return mk_obj("a", float(val))
+            except:
+                runtime_error(
+                    "Could not convert string to number: " + val, RUNNER)
+        else:
+            try:
+                return mk_obj("a", float(val))
+            except:
+                runtime_error("Could to number: " + str(val), RUNNER)
     else:
         return mk_obj("a", float(v))
 
@@ -89,8 +105,15 @@ def mk_obj(typ, value):
     return {"value": value, "type": typ}
 
 
+def str_print(v):
+    if v["type"] == "aaa":
+        return "[" + ", ".join([str_print(x) for x in v["value"]]) + "]"
+    else:
+        return str(v["value"])
+
+
 def print_object(v):
-    print(v["value"])
+    print(str_print(v))
     return mk_obj("", None)
 
 
@@ -139,7 +162,7 @@ def bitwise_not(a, b):
 
 
 def size_of(s):
-    return mk_number(len(s))
+    return mk_number(len(s["value"]))
 
 
 def call_single(func, arg):
@@ -157,7 +180,7 @@ def call_function(func, args={"value": []}):
             var = func(*args["value"])
             return var
         else:
-            s = {"variables": {}, "functions": func["functions"], "labels": func["labels"],
+            s = {"variables": {}, "to_file": func["to_file"], "functions": func["functions"], "labels": func["labels"],
                  "line": 0, "program": func["program"], "indent": func["indent"]}
             for i in range(len(func["arguments"])):
                 if i < len(args["value"]):
@@ -172,11 +195,11 @@ def call_function(func, args={"value": []}):
 
 
 def index_list(lst, index):
-    return lst["value"][index]
+    return lst["value"][int(index["value"])]
 
 
 def index_dict(dict, key):
-    return dict["value"][key]
+    return dict["value"][key["value"]]
 
 
 def mk_copy(obj):
@@ -188,8 +211,8 @@ def mk_null():
 
 
 def add_to_list(lst, value):
-    lst.append(mk_copy(value))
-    return mk_null
+    lst["value"].append(mk_copy(value))
+    return mk_null()
 
 
 def remove_from_list(lst, value):
@@ -203,7 +226,62 @@ def concat_list(a, b):
     return mk_list(a["value"] + b["value"])
 
 
-functions = {"Aaa": print_object, "AaA": input_object}
+def file_in(str_obj):
+    file = open(str_obj["value"], "r")
+    t = file.read()
+    file.close()
+    return mk_string(t)
+
+
+def file_out(path, str_obj):
+    file = open(path["value"], "w")
+    file.write(str_obj["value"])
+    file.close()
+
+
+def split_string(string, split_at):
+    return mk_string(string["value"].split(split_at["value"]))
+
+
+def call_member_single(func, val):
+    return call_member_function(func, {"value": [val]})
+
+
+def fits_call(arg_types, compare_to):
+    if len(arg_types) != len(compare_to):
+        return False
+    for i in range(len(compare_to)):
+        if compare_to[i] == "any":
+            continue
+        if arg_types[i] != compare_to[i]:
+            return False
+    return True
+
+
+def call_member_function(func, args={"value": []}):
+    calls = assembly[func["value"]["var"]["type"]
+                     ]["functions"][func["value"]["func"]]
+    arg_types = [x["type"] for x in args["value"]]
+    for call in calls:
+        if fits_call(arg_types, call["args"]):
+            return call["func"](func["value"]["var"], *args["value"])
+    runtime_error("There is no matching argument list!", 0)
+    return mk_null()
+
+
+def get_self(func):
+    return func["var"]
+
+
+def index_string(string, number):
+    if int(number["value"]) >= len(string["value"]):
+        runtime_error("String index out of range.", RUNNER)
+        return mk_null()
+    return mk_string(string["value"][int(number["value"])])
+
+
+functions = {"Aaa": print_object, "AaA": input_object,
+             "Aaaa": file_in, "AaaA": file_out}
 
 labels = {"A": 0}
 
@@ -218,10 +296,12 @@ assembly = {"a": {"operators": {"A": {"a": add_number}, "Aa": {"a": sub_number, 
                                 "AAaa": {"solo": bitwise_not}, "AAaaa": {"a": bitwise_and}, "AAaaA": {"a": bitwise_or}, "AAaaAa": {"a": bitwise_xor},
                                 "AaAa": {"a": equals}, "AaAaa": {"a": less_than}, "AaAaaa": {"a": lesseq_than}, "AaAaA": {"a": greater_than}, "AaAaAa": {"a": greatereq_than}},
                   "constructors": {("a",): mk_number, ("aA",): mk_number}},
-            "aA": {"operators": {"a": {"aA": assign}, "A": {"aA": add_str}, "AA": {"a": mul_str}},
-                   "constructors": {("a",): mk_string, ("aA",): mk_string}, "functions": {"a": [{"args": (), "func": size_of}]}},
-            "aa": {"operators": {"AaA": {"aaa": call_function, "solo": call_function, "a": call_single, "aA": call_single, "aa": call_single, "": call_single}}},
-            "aaa": {"operators": {"AaAA": {"a": index_list}, "A": {"aaa": concat_list}}, "functions": {"a": [{"args": (), "func": size_of}], "A": [{"args": ("any"), "func": add_to_list}]}},
+            "aA": {"operators": {"AaAa": {"aA": equals}, "AaAA": {"a": index_string}, "a": {"aA": assign}, "A": {"aA": add_str}, "AA": {"a": mul_str}},
+                   "constructors": {("a",): mk_string, ("aA",): mk_string}, "functions": {"a": [{"args": (), "func": size_of}], "AAa": [{"args": ("aA"), "func": split_string}]}},
+            "aa": {"operators": {"AaA": {"aaa": call_function, "solo": call_function, "a": call_single, "aA": call_single, "aa": call_single, "aaaA": call_single, "": call_single}}},
+            "aaaA": {"operators": {"AaA": {"aaa": call_member_function, "solo": call_member_function, "a": call_member_single, "aA": call_member_single, "aa": call_member_single, "aaaA": call_member_single, "": call_member_single}},
+                     "functions": {"aa": [{"args": (), "func": get_self}]}},
+            "aaa": {"operators": {"AaAA": {"a": index_list}, "A": {"aaa": concat_list}}, "functions": {"a": [{"args": (), "func": size_of}], "A": [{"args": ("any",), "func": add_to_list}]}},
             "aaA": {"operators": {"AaAA": {"a": index_dict, "aA": index_dict}}}}
 
 
@@ -266,7 +346,7 @@ def parse_string(string, code_runner):
         current += c
         if len(current) == 8:
             num = parse_num(current, code_runner)
-            result += chr(num)
+            result += chr(int(num))
             current = ""
     return result
 
@@ -340,34 +420,43 @@ def get_order(operator):
 
 
 def get_next_char(code, i, ignore=False, ignore_white_space=False):
+    new_lines = 0
     while i < len(code) and code[i].isspace():
-        if not ignore and code[i] == "\n":
-            return i, "\n"
+        if code[i] == "\n":
+            new_lines += 1
+            if not ignore:
+                return i, "\n", new_lines
         i += 1
         if not ignore_white_space and not code[i].isspace():
-            return i - 1, " "
+            return i - 1, " ", new_lines
     if i < len(code) and code[i] == "ⓐ":
         while i < len(code) and code[i] != "\n":
             i += 1
+        new_lines += 1
         if ignore:
-            return get_next_char(code, i, True)
+            index, char, n = get_next_char(code, i, True)
+            new_lines += n
+            return index, char, new_lines
         else:
-            return i, "\n"
+            return i, "\n", new_lines
     if i < len(code) and code[i] == "Ⓐ":
         newline = False
         while i < len(code) and code[i] != "Ⓐ":
             i += 1
             if code[i] == "\n":
                 newline = True
+                new_lines += 1
         if newline and ignore:
-            return get_next_char(code, i, True)
+            index, char, n = get_next_char(code, i, True)
+            new_lines += n
+            return index, char, new_lines
         elif newline and not ignore:
             return i, "\n"
         else:
             return get_next_char(code, i, ignore)
     if i < len(code):
-        return i, code[i]
-    return i, None
+        return i, code[i], new_lines
+    return i, None, new_lines
 
 
 def indentation(s, tabsize=4):
@@ -375,7 +464,12 @@ def indentation(s, tabsize=4):
     return 0 if sx.isspace() else len(sx) - len(sx.lstrip())
 
 
+RUNNER = 0
+
+
 def eval(expr, code_runner):
+    global RUNNER
+    RUNNER = code_runner
     if len(expr) == 0:
         return mk_obj("", None)
     elements = []
@@ -392,7 +486,21 @@ def eval(expr, code_runner):
             if var == None:
                 var = mk_obj("", None)
                 stack[-1]["variables"][string] = var
-            elements.append(var)
+
+            if i < len(expr) and expr[i] == "Â":
+                i += 1
+                member = ""
+                while i < len(expr) and is_a(expr[i]):
+                    member += expr[i]
+                    i += 1
+                if member in assembly[var["type"]]["functions"]:
+                    elements.append(
+                        mk_obj("aaaA", {"func": member, "var": var}))
+                else:
+                    runtime_error(
+                        "That member function does not exist!", code_runner)
+            else:
+                elements.append(var)
         elif expr[i] == "å":
             string = ""
             i += 1
@@ -482,8 +590,10 @@ def eval(expr, code_runner):
                     elems.append(eval(string, code_runner))
                 elements.append(mk_list(elems))
             else:
-                elements.append(eval(string, code_runner))
-
+                if len(string) == 0:
+                    elements.append(mk_list([]))
+                else:
+                    elements.append(eval(string, code_runner))
         elif is_a(expr[i]) or expr[i] == "Â":
             i, num = get_number(expr, i, code_runner)
             elements.append(mk_number(num))
@@ -492,6 +602,8 @@ def eval(expr, code_runner):
 
     op_ord.sort()
     while len(elements) > 1:
+        if len(op_ord) == 0:
+            print(elements)
         order = op_ord.pop()
         i = 0
 
@@ -499,11 +611,17 @@ def eval(expr, code_runner):
             operator = elements[index[0]]
             index[0] += 1
             obj = None
-            if type(elements[index[0]]) == str:
-                obj = single(index)
+            if index[0] < len(elements):
+                if type(elements[index[0]]) == str:
+                    obj = single(index)
+                else:
+                    obj = elements[index[0]]
+                return assembly[obj["type"]]["operators"][operator]["solo"](obj)
             else:
-                obj = elements[index[0]]
-            return assembly[obj["type"]]["operators"][operator]["solo"](obj)
+                print(elements)
+                runtime_error(
+                    "Expected an object after an operator but found nothing.", code_runner)
+                return mk_null()
         while i < len(elements):
             if type(elements[i]) == dict:
                 a = elements[i]
@@ -538,6 +656,7 @@ def eval(expr, code_runner):
                                         c = assembly[a["type"]]["operators"][operator][b["type"]](
                                             a, b)
 
+                                        RUNNER = code_runner
                                     else:
                                         return runtime_error(
                                             "There is no operator " + operator + " for types " + a["type"] + " and " + b["type"] + ".", code_runner)
@@ -560,6 +679,7 @@ def eval(expr, code_runner):
                 start = i
                 index = [i]
                 obj = single(index)
+                RUNNER = code_runner
                 i = index[0]
                 del elements[start:i + 1]
                 elements.insert(start, obj)
@@ -567,7 +687,7 @@ def eval(expr, code_runner):
     return elements[0]
 
 
-def compile(code, min_indent=0, i=0, fns=functions, lbls=labels):
+def compile(code, min_indent=0, i=0, fns=functions, lbls=labels, current_line=0):
     program = []
     program_to_file_line = []
     while i < len(code):
@@ -581,12 +701,15 @@ def compile(code, min_indent=0, i=0, fns=functions, lbls=labels):
             i += 1
         line = ""
         end = None
-        i, char = get_next_char(code, i)
+        start_line = current_line
+        i, char, newlines = get_next_char(code, i)
+        current_line += newlines
 
         if i + 2 < len(code) and code[i:i+3] == "ÃA ":
             i += 3
             if i < len(code):
-                i, char = get_next_char(code, i, False, True)
+                i, char, newlines = get_next_char(code, i, False, True)
+                current_line += newlines
                 if char == "Å":
                     i += 1
                     name = ""
@@ -605,7 +728,9 @@ def compile(code, min_indent=0, i=0, fns=functions, lbls=labels):
                                 compile_error(
                                     "There are two or more arguments named " + parameter + " in the funciton " + name + ".", -1)
 
-                    i, char = get_next_char(code, i, end != None, True)
+                    i, char, newlines = get_next_char(
+                        code, i, end != None, True)
+                    current_line += newlines
                     while char != "\n" and char != None:
                         if end == None:
                             if char == "Á":
@@ -625,15 +750,17 @@ def compile(code, min_indent=0, i=0, fns=functions, lbls=labels):
                             compile_error("Unnexpected symbol '" +
                                           char + "' in function " + name, -1)
                         i += 1
-                        i, char = get_next_char(code, i, end != None, True)
+                        i, char, newlines = get_next_char(
+                            code, i, end != None, True)
+                        current_line += newlines
                     add_parameter()
                     inner_functions = {}
                     inner_labels = {}
-                    prog, _pr, i = compile(
-                        code, indent + 1, i + 1, inner_functions, inner_labels)
+                    prog, to_file, i, current_line = compile(
+                        code, indent + 1, i + 1, inner_functions, inner_labels, current_line)
                     fns[name] = {"value": name, "functions": inner_functions,
-                                 "labels": inner_labels, "program": prog, "arguments": parameters, "indent": indent + 1}
-                    # print(code[s:i])
+                                 "labels": inner_labels, "program": prog, "to_file": to_file, "arguments": parameters, "indent": indent + 1}
+
                 else:
                     compile_error("Expected 'Å' but got '" + char + "'.", -1)
             else:
@@ -643,10 +770,12 @@ def compile(code, min_indent=0, i=0, fns=functions, lbls=labels):
             if i + 3 < len(code) and code[i:i+4] == "ÃaA ":
                 i += 4
                 if i < len(code):
-                    i, char = get_next_char(code, i, False, True)
+                    i, char, newlines = get_next_char(code, i, False, True)
+                    current_line += newlines
                     if char == "Ä":
                         i += 1
-                        i, char = get_next_char(code, i, True, True)
+                        i, char, newlines = get_next_char(code, i, True, True)
+                        current_line += newlines
                         string = ""
                         while char != "Ä" or char != None:
                             if is_a(char):
@@ -655,7 +784,9 @@ def compile(code, min_indent=0, i=0, fns=functions, lbls=labels):
                                 compile_error(
                                     "Expected 'A' or 'a' but got '" + char + "'", -1)
                             i += 1
-                            i, char = get_next_char(code, i, True, True)
+                            i, char, newlines = get_next_char(
+                                code, i, True, True)
+                            current_line += newlines
                         if char == "Ä":
                             if not string in lbls:
                                 lbls[string] = len(program)
@@ -687,13 +818,15 @@ def compile(code, min_indent=0, i=0, fns=functions, lbls=labels):
                     line += char
 
                     i += 1
-                    i, char = get_next_char(code, i, end != None)
-                i += 1
+                    i, char, new_lines = get_next_char(code, i, end != None)
+                    current_line += new_lines
+                current_line += 1
                 line = line.strip()
                 if len(line) > 0:
                     program.append((line, indent))
+                    program_to_file_line.append(start_line)
 
-    return program, program_to_file_line, i
+    return program, program_to_file_line, i, current_line
 
 
 def should_run(code_runner):

@@ -15,6 +15,7 @@ TYPES
 ãa - number
 ãaA - string
 ãaa - function
+ãaaaA - member function
 ãaaa - list
 ãaaA - dictionary
 
@@ -67,6 +68,8 @@ KEYWORDS
 BUILTIN FUNCTIONS
 ÅAaa - standard out
 ÅAaA - standard in
+ÅAaaa - read from file
+ÅAaaA - write to file
 
 
 EXAMPLE
