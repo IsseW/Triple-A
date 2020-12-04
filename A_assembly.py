@@ -155,10 +155,9 @@ def bitwise_xor(a, b):
     return mk_number(x ^ y)
 
 
-def bitwise_not(a, b):
+def bitwise_not(a):
     x = int(a["value"])
-    y = int(b["value"])
-    return mk_number(x ^ y)
+    return mk_number(~x)
 
 
 def size_of(s):
