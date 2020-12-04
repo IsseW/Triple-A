@@ -20,7 +20,7 @@ TYPES
 ãaa - function
 ãaaaA - member function
 ãaaa - list
-ãaaA - dictionary
+ãaaA - dictionary // Not supported yet
 
 CONSTANTS:
 XXXXXX for number, presented in binary where A = 1 and a = 0
