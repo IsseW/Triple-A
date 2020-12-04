@@ -1,5 +1,8 @@
 Ever gotten tired of having to type more than one letter when coding? Yeah not me either, but in Triple-A you code with only variations of the letter A.
 
+This is a language i made in a couple days. Expect bugs and don't expect it to be fast.
+
+If you want to try using this language. Clone this repository and run the interpreter.exe in ./dist/interpreter on the aaa code. If you want syntax highlighting in vs code clone https://github.com/IsseW/aaa-extention and open it in vs code. Then press F5 to start debugging and a new vs code window will open with an extention to highlight AAA code.
 
 
 Just some info about the language. Mostly for me so that I dont forget.
